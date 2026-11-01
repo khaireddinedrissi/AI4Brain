@@ -1,0 +1,373 @@
+{
+  "score_name": "AI Collaboration Score",
+  "version": "2.0",
+  "scale": {
+    "min": 0,
+    "max": 100
+  },
+  "formula": "S = 0.20*C + 0.25*V + 0.20*I + 0.20*A + 0.15*R",
+  "formula_final": "S_final = clamp(S_base + synergy_bonus - dependency_penalty, 0, 100)",
+  "dimensions": {
+    "C": {
+      "name": "Clarification",
+      "weight": 0.2,
+      "description": "Le prompt est clair, contextualisé et contraint.",
+      "indicators": [
+        "precise_objective",
+        "provides_context",
+        "specifies_constraints"
+      ]
+    },
+    "V": {
+      "name": "Critical Verification",
+      "weight": 0.25,
+      "description": "L'utilisateur vérifie, challenge et teste les réponses de l'IA.",
+      "indicators": [
+        "requests_justification",
+        "checks_information",
+        "detects_errors"
+      ]
+    },
+    "I": {
+      "name": "Iteration",
+      "weight": 0.2,
+      "description": "L'utilisateur améliore progressivement le résultat.",
+      "indicators": [
+        "requests_improvement",
+        "reformulates_request",
+        "refines_result"
+      ]
+    },
+    "A": {
+      "name": "Autonomy",
+      "weight": 0.2,
+      "description": "L'utilisateur garde la main sur le raisonnement et les décisions.",
+      "indicators": [
+        "proposes_own_ideas",
+        "explains_reasoning",
+        "makes_own_decisions"
+      ]
+    },
+    "R": {
+      "name": "Responsible Use",
+      "weight": 0.15,
+      "description": "Protection des données, conscience des limites de l'IA, usage éthique.",
+      "indicators": [
+        "protects_sensitive_data",
+        "recognizes_ai_limitations",
+        "uses_ai_responsibly"
+      ]
+    }
+  },
+  "indicator_scoring": {
+    "not_observed": 0,
+    "partially_observed": 0.5,
+    "clearly_observed": 1,
+    "not_evaluable": null,
+    "confidence_levels": {
+      "low": 0.5,
+      "medium": 0.75,
+      "high": 1.0
+    },
+    "evidence_required_for_score_1": true
+  },
+  "aggregation": {
+    "indicator_to_dimension": "D = 100 * sum(s_i * c_i) / sum(c_i), sur les indicateurs évaluables uniquement (s_i = note, c_i = confiance)",
+    "not_evaluable_policy": "indicateur exclu du calcul (jamais compté comme 0)",
+    "min_evaluable_indicators": 2,
+    "shrinkage": {
+      "formula": "D_adj = (n*D + k*prior) / (n + k)",
+      "k": 2,
+      "prior": 50,
+      "purpose": "éviter les scores extrêmes quand peu d'indicateurs sont observés"
+    },
+    "global": "S_base = sum(W_d * D_adj_d) / sum(W_d) sur les dimensions disponibles (renormalisation des poids)"
+  },
+  "innovations": {
+    "synergy_bonus": {
+      "rule": "+ min(5, 0.1*(min(V, I) - 70)) si V >= 70 et I >= 70",
+      "rationale": "récompense le cycle vérifier puis itérer"
+    },
+    "dependency_penalty": {
+      "rule": "- min(15, 0.3*(40 - A)) si A < 40 et V < 40",
+      "rationale": "pénalise la sur-dépendance passive à l'IA"
+    },
+    "temporal_smoothing": {
+      "formula": "S_smooth = 0.7*S_final + 0.3*S_prev",
+      "purpose": "stabiliser la courbe de progression"
+    },
+    "uncertainty": {
+      "formula": "u_S = max(3, 10 / (1 + 0.5*(n_sessions - 1)))",
+      "display": "S ± u_S"
+    }
+  },
+  "score_interpretation": {
+    "0-30": "needs_work",
+    "31-65": "average",
+    "66-85": "good",
+    "86-100": "excellent"
+  },
+  "cognitive_dimensions": {
+    "WM": {
+      "name": "Working Memory",
+      "definition": "Capacité à retenir et manipuler brièvement des informations.",
+      "tasks": [
+        "reverse_digit_span",
+        "reverse_word_span"
+      ],
+      "reference_time_s": 20,
+      "biases": [
+        "fatigue",
+        "bruit ambiant",
+        "familiarité avec les chiffres"
+      ]
+    },
+    "AT": {
+      "name": "Attention",
+      "definition": "Capacité à rester concentré et détecter une cible.",
+      "tasks": [
+        "target_detection",
+        "go_no_go"
+      ],
+      "reference_time_s": 30,
+      "biases": [
+        "qualité de l'écran",
+        "latence du clic",
+        "distractions"
+      ]
+    },
+    "PS": {
+      "name": "Problem Solving",
+      "definition": "Raisonnement logique sur suites et motifs.",
+      "tasks": [
+        "number_sequence",
+        "pattern_matrix"
+      ],
+      "reference_time_s": 45,
+      "biases": [
+        "culture mathématique",
+        "effet d'apprentissage entre essais"
+      ]
+    },
+    "SP": {
+      "name": "Processing Speed",
+      "definition": "Rapidité de traitement d'informations simples.",
+      "tasks": [
+        "symbol_matching",
+        "reaction_time"
+      ],
+      "reference_time_s": 1.2,
+      "biases": [
+        "matériel utilisé",
+        "précipitation vs précision"
+      ]
+    }
+  },
+  "cognitive_scoring": {
+    "accuracy": "Acc = 100 * correct / total",
+    "speed_penalty": "P_t = min(15, 10 * (t / t_ref - 1.5)) si t > 1.5 * t_ref, sinon 0",
+    "hesitation_penalty": "P_h = min(10, 2 * hesitation_count)",
+    "difficulty_weight": {
+      "1": 0.85,
+      "2": 0.95,
+      "3": 1.0,
+      "4": 1.1,
+      "5": 1.2
+    },
+    "score": "Score = clamp((Acc - P_t - P_h) * difficulty_weight, 0, 100)",
+    "error_rate": "100 - Acc",
+    "record_per_task": [
+      "score",
+      "response_time",
+      "error_rate",
+      "hesitation_count"
+    ],
+    "params": {
+      "speed_threshold_ratio": 1.5,
+      "speed_penalty_max": 15,
+      "speed_penalty_slope": 10,
+      "hesitation_penalty_max": 10,
+      "hesitation_penalty_per_unit": 2,
+      "default_difficulty_level": 3
+    },
+    "game_to_dimension": {
+      "Memory Flip": "WM",
+      "Focus Sprint": "AT",
+      "Pattern Quest": "PS",
+      "Speed Match": "SP"
+    }
+  },
+  "brain_twin": {
+    "mode": "dynamic_historised",
+    "uncertainty": "u = max(3, 10 / (1 + 0.5*(n_tests - 1)))",
+    "update": "precision-weighted : p = 1/u^2 ; new = (0.95*p_old*old + p_new*x) / (0.95*p_old + p_new) ; u_new = sqrt(1 / (0.95*p_old + p_new))",
+    "confidence_interval": "[score - 1.96*u, score + 1.96*u], borné à [0, 100]",
+    "projection": {
+      "enabled": true,
+      "formula": "proj(h) = score + slope * h ; u_proj(h) = u * sqrt(1 + h/5)",
+      "rule": "toujours affichée avec incertitude, jamais présentée comme certitude"
+    },
+    "learning_gain": "g = (post - pre) / (100 - pre)"
+  },
+  "weakness_detection": {
+    "responsible_component": "algorithme déterministe (calcul) ; le LLM ne fait que verbaliser",
+    "priority": "priority = (100 - score) + 0.5*u",
+    "selection": "dimension à la priorité la plus élevée"
+  },
+  "adaptive_learning": {
+    "levels": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+    ],
+    "scoring_levels": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "initial_level": 5,
+    "success_threshold": 60,
+    "k_factor": 16,
+    "base_rating": 1000,
+    "rating_points_per_level": 100,
+    "actual_result": "1 if score >= 60, otherwise 0",
+    "expected_probability": "1 / (1 + 10 ** ((exercise_rating - user_rating) / 400))",
+    "rating_update": "rating += k_factor * (actual_result - expected_probability)",
+    "level_update": "round(1 + (rating - base_rating) / rating_points_per_level), clamped to levels 1-10",
+    "scoring_level_mapping": "ceil(elo_level / 2)",
+    "plan": "2 à 3 exercices sur la dimension prioritaire + 1 sur la dimension la plus forte (motivation)"
+  },
+  "dashboard": {
+    "radar": "dernier score de chaque dimension cognitive avec incertitude",
+    "progress_curve": "score par session et par dimension",
+    "heatmap": "dimension x jour, intensité = score moyen",
+    "goal_tracking": "avancement = (score - score_depart) / (objectif - score_depart)"
+  },
+  "coach": {
+    "llm_role": "explication en langage naturel uniquement (pas de calcul)",
+    "forbidden_terms": [
+      "diagnostic",
+      "déficit",
+      "pathologie",
+      "TDAH",
+      "trouble",
+      "maladie",
+      "clinique"
+    ],
+    "must_include": [
+      "justification du conseil",
+      "2 conseils pratiques",
+      "ton bienveillant"
+    ],
+    "post_check": "rejeter et régénérer si un terme interdit est détecté"
+  },
+  "ethics": {
+    "consent_required": true,
+    "default_input_mode": "non_biometric",
+    "camera_voice": "optionnel, jamais seul pour une décision sensible",
+    "retention_days": 365,
+    "deletion": "suppression complète à la demande (cascade)",
+    "data_minimization": "pseudonyme uniquement, aucune donnée médicale"
+  },
+  "engagement_state": {
+    "_note": "Paramètres d'engagement (EN) / moral (MO) lus par database1.py. smoothing reprend brain_twin (10, 0.95, plancher 3). Les autres valeurs ne figuraient dans aucun fichier : ce sont des valeurs de départ à calibrer (engagement_calibration()).",
+    "params": {
+      "impulsivity_ref_ratio": 0.5,
+      "hesitation_cap": 5,
+      "frustration_w_error": 0.6,
+      "frustration_w_hesitation": 0.4,
+      "decline_scale": 30,
+      "progress_scale": 30,
+      "inactivity_tau": 7,
+      "sessions_target_7d": 3,
+      "history_window": 3,
+      "default_gap_days": 2,
+      "abandon_window": 5
+    },
+    "axes": {
+      "weights": {
+        "EN": {
+          "Z": 0.35,
+          "Q": 0.25,
+          "G": 0.2,
+          "Ir": 0.2
+        },
+        "MO": {
+          "F": 0.4,
+          "L": 0.35,
+          "H": 0.25,
+          "P_bonus": 10
+        }
+      }
+    },
+    "smoothing": {
+      "obs_uncertainty": 10,
+      "forgetting": 0.95,
+      "min_uncertainty": 3
+    },
+    "classification": {
+      "center": 50,
+      "states": {
+        "motivated_confident": "Raise difficulty by one level and set a small goal.",
+        "invested_under_pressure": "Lower difficulty by one level, calm round, accuracy over speed.",
+        "low_stimulation_routine": "Vary the game and raise difficulty to bring back interest.",
+        "low_energy": "Suggest a very short, easy 2-minute round.",
+        "neutral_to_confirm": "Ask how the user feels instead of assuming."
+      }
+    },
+    "email": {
+      "min_days_away": 7,
+      "gap_multiplier": 2,
+      "cooldown_days": 14,
+      "max_unanswered": 3,
+      "forbidden_terms_extra": [
+        "diagnosis",
+        "deficit",
+        "pathology",
+        "ADHD",
+        "disorder",
+        "disease",
+        "clinical",
+        "depression",
+        "anxiety",
+        "therapy",
+        "illness",
+        "dépression",
+        "anxiété",
+        "thérapie"
+      ]
+    }
+  },
+  "adaptive_bridge": {
+    "_note": "difficulty_elo.py is the source of truth: 10 Elo levels, K=16, success threshold=60; the scoring weight maps these to 5 levels by ceil(Elo level / 2). Weekly plan defaults come from learning_plan.generate_weekly_plan. Speed Match provides the Processing Speed (SP) task.",
+    "elo_levels": 10,
+    "scoring_levels": 5,
+    "success_threshold": 60,
+    "recent_window": 5,
+    "weekly_plan": {
+      "target_score": 80,
+      "importance": {
+        "WM": 0.25,
+        "AT": 0.25,
+        "PS": 0.25,
+        "SP": 0.25
+      },
+      "total_sessions": 7,
+      "session_minutes": 20,
+      "provisional_score": 50
+    },
+    "initial_level": 5,
+    "k_factor": 16,
+    "base_rating": 1000,
+    "rating_points_per_level": 100
+  }
+}
