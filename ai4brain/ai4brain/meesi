@@ -1,0 +1,72 @@
+"""Groq coach used by the Flask app, configured from Streamlit secrets."""
+import json
+import tomllib
+from pathlib import Path
+
+from groq import Groq
+
+BASE_DIR = Path(__file__).resolve().parent
+SECRETS_FILE = BASE_DIR / ".streamlit" / "secrets.toml"
+MODEL = "openai/gpt-oss-20b"
+
+
+def _api_key():
+    if not SECRETS_FILE.exists():
+        return None
+    try:
+        value = tomllib.loads(SECRETS_FILE.read_text(encoding="utf-8"))
+        return value.get("GROQ_API_KEY")
+    except (OSError, tomllib.TOMLDecodeError):
+        return None
+
+
+def groq_available():
+    return bool(_api_key())
+
+
+def generate_ai_coach_feedback(user_profile, user_ai_interaction_logs):
+    """Return a direct chat answer and a brief collaboration-coaching note."""
+    api_key = _api_key()
+    if not api_key:
+        return None
+
+    system_prompt = """You are the AI4Brain Cognitive Growth Coach.
+First, answer the user's latest request directly and helpfully, using the conversation and supplied profile. When a user objective is supplied, align practice suggestions with it and avoid claiming that a goal has been achieved unless the supplied scores support that claim.
+Second, give a short, motivating coaching note about how the user collaborates with AI.
+Use plain, concise language. Never use medical or clinical terminology. Do not invent scores or facts.
+Reply in English by default. If the user writes in French or explicitly asks for French, reply in French.
+Return ONLY a valid JSON object in this exact structure:
+{
+  "ai_response": "A direct answer to the user's latest request.",
+  "scores": {
+    "clarification": 0,
+    "verification": 0,
+    "iteration": 0,
+    "autonomy": 0,
+    "responsible_use": 0,
+    "overall": 0
+  },
+  "coaching_feedback": "A brief, motivating note with one useful suggestion."
+}
+The scores are estimates from the supplied conversation only. The application calculates and displays its official collaboration score separately."""
+    try:
+        response = Groq(api_key=api_key).chat.completions.create(
+            model=MODEL,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": (
+                    "USER PROFILE: " + json.dumps(user_profile, ensure_ascii=False) +
+                    "\nUSER-AI INTERACTION LOGS: " + json.dumps(user_ai_interaction_logs, ensure_ascii=False)
+                )},
+            ],
+            temperature=0.2,
+            response_format={"type": "json_object"},
+        )
+        result = json.loads(response.choices[0].message.content)
+        if not isinstance(result, dict):
+            return None
+        if not isinstance(result.get("ai_response"), str) or not isinstance(result.get("coaching_feedback"), str):
+            return None
+        return result
+    except Exception:
+        return None
